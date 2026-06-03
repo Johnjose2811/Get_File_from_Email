@@ -1,0 +1,48 @@
+{
+  "flow": {
+    "displayName": "Email Attachment to SharePoint",
+    "description": "Automatically extracts Excel attachments from emails and saves to SharePoint"
+  },
+  "trigger": {
+    "type": "Recurrence",
+    "schedule": {
+      "frequency": "Week",
+      "interval": 1,
+      "weekDays": ["Monday", "Friday"],
+      "hours": ["10"],
+      "timeZone": "India Standard Time"
+    }
+  },
+  "emailConfiguration": {
+    "folderPath": "Inbox",
+    "topEmailsToRetrieve": 25,
+    "fetchOnlyUnread": false,
+    "includeAttachments": true,
+    "fetchOnlyWithAttachment": true,
+    "importance": "Any"
+  },
+  "subjectFilters": [
+    {
+      "contains": "EE List w/ HR and RE is available",
+      "description": "Employee list report"
+    },
+    {
+      "contains": "A new version of Pending Requisition Report is available",
+      "description": "Requisition report"
+    }
+  ],
+  "fileTypeFilters": {
+    "allowedExtensions": [".xlsx", ".xls"],
+    "description": "Only Excel files are processed"
+  },
+  "sharePointConfiguration": {
+    "siteUrl": "[YOUR_SHAREPOINT_SITE_URL]",
+    "folderPath": "[YOUR_FOLDER_PATH]",
+    "fileNamingConvention": "YYYYMMDD_[original_filename]"
+  },
+  "notes": {
+    "dateFormat": "yyyyMMdd - Based on email received date",
+    "contentTransfer": "Chunked mode enabled for large files",
+    "duplicateHandling": "SharePoint overwrites files with same name"
+  }
+}

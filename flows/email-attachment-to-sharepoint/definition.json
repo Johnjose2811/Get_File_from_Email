@@ -1,0 +1,122 @@
+{
+  "name": "email-attachment-to-sharepoint",
+  "displayName": "Email Attachment to SharePoint",
+  "description": "Automatically extracts Excel attachments from specific emails and saves them to SharePoint with date-stamped filenames.",
+  "trigger": {
+    "type": "Recurrence",
+    "recurrence": {
+      "interval": 1,
+      "frequency": "Week",
+      "timeZone": "India Standard Time",
+      "schedule": {
+        "weekDays": ["Monday", "Friday"],
+        "hours": ["10"]
+      }
+    }
+  },
+  "actions": [
+    {
+      "name": "Get_emails",
+      "type": "Office365Outlook",
+      "operation": "GetEmailsV3",
+      "description": "Retrieves emails from inbox with attachments",
+      "parameters": {
+        "folderPath": "Inbox",
+        "fetchOnlyUnread": false,
+        "includeAttachments": true,
+        "top": 25,
+        "importance": "Any",
+        "fetchOnlyWithAttachment": true
+      }
+    },
+    {
+      "name": "Apply_to_each",
+      "type": "Foreach",
+      "description": "Iterates through retrieved emails",
+      "foreach": "@outputs('Get_emails')?['body/value']",
+      "actions": [
+        {
+          "name": "Condition",
+          "type": "If",
+          "description": "Checks if email subject matches specific criteria",
+          "expression": {
+            "or": [
+              {
+                "contains": [
+                  "@items('Apply_to_each')?['subject']",
+                  "EE List w/ HR and RE is available"
+                ]
+              },
+              {
+                "contains": [
+                  "@items('Apply_to_each')?['subject']",
+                  "A new version of Pending Requisition Report is available"
+                ]
+              }
+            ]
+          },
+          "actions": [
+            {
+              "name": "Apply_to_each_attachments",
+              "type": "Foreach",
+              "description": "Iterates through email attachments",
+              "foreach": "@items('Apply_to_each')?['attachments']",
+              "actions": [
+                {
+                  "name": "Condition_check_excel",
+                  "type": "If",
+                  "description": "Checks if attachment is an Excel file",
+                  "expression": {
+                    "or": [
+                      {
+                        "endsWith": [
+                          "@items('Apply_to_each_attachments')?['name']",
+                          ".xlsx"
+                        ]
+                      },
+                      {
+                        "endsWith": [
+                          "@items('Apply_to_each_attachments')?['name']",
+                          ".xls"
+                        ]
+                      }
+                    ]
+                  },
+                  "actions": [
+                    {
+                      "name": "Create_file",
+                      "type": "SharePointOnline",
+                      "operation": "CreateFile",
+                      "description": "Saves attachment to SharePoint with date prefix",
+                      "parameters": {
+                        "dataset": "[SHAREPOINT_SITE_URL]",
+                        "folderPath": "[FOLDER_PATH]",
+                        "name": "concat(formatDateTime(items('Apply_to_each')?['receivedDateTime'], 'yyyyMMdd'), '_', items('Apply_to_each_attachments')?['name'])",
+                        "body": "@items('Apply_to_each_attachments')?['contentBytes']"
+                      },
+                      "runtimeConfiguration": {
+                        "contentTransfer": {
+                          "transferMode": "Chunked"
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "connections": {
+    "office365": {
+      "displayName": "Office 365 Outlook",
+      "api": "shared_office365"
+    },
+    "sharepointonline": {
+      "displayName": "SharePoint",
+      "api": "shared_sharepointonline"
+    }
+  }
+}
